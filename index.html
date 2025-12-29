@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Flash Bill</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#1677ff',
+              success: '#52c41a',
+              warning: '#faad14',
+              danger: '#ff4d4f',
+            }
+          }
+        }
+      }
+    </script>
+    <!-- Basic reset for mobile -->
+    <style>
+      body {
+        background-color: #f5f5f5;
+        overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile */
+      }
+    </style>
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^18.2.0",
+    "react/": "https://esm.sh/react@^18.2.0/",
+    "react-dom/client": "https://esm.sh/react-dom@^18.2.0/client",
+    "react-router-dom": "https://esm.sh/react-router-dom@6.22.3",
+    "uuid": "https://esm.sh/uuid@^9.0.1",
+    "dayjs": "https://esm.sh/dayjs@^1.11.10",
+    "axios": "https://esm.sh/axios@^1.6.7",
+    "antd-mobile": "https://esm.sh/antd-mobile@^5.35.0",
+    "classnames": "https://esm.sh/classnames@^2.5.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+  }
+}
+</script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

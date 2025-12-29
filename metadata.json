@@ -1,0 +1,5 @@
+{
+  "name": "Flash Bill (闪电记账)",
+  "description": "A high-performance mobile PWA for tracking personal expenses with offline support.",
+  "requestFramePermissions": []
+}
