@@ -138,8 +138,12 @@ const HomePage: React.FC = () => {
                                 </span>
                             </div>
                             <div className="flex gap-4 text-xl">
-                                <SearchOutline onClick={() => setIsSearchVisible(true)} className="cursor-pointer hover:opacity-80" />
-                                <CalendarOutline onClick={() => setIsDatePickerVisible(true)} className="cursor-pointer hover:opacity-80" />
+                                <div onClick={() => setIsSearchVisible(true)} className="p-1 cursor-pointer active:opacity-50">
+                                    <SearchOutline />
+                                </div>
+                                <div onClick={() => setIsDatePickerVisible(true)} className="p-1 cursor-pointer active:opacity-50">
+                                    <CalendarOutline />
+                                </div>
                             </div>
                         </>
                     )}
