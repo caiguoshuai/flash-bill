@@ -116,7 +116,7 @@ const HomePage: React.FC = () => {
                             <SearchBar
                                 placeholder="搜索分类或备注"
                                 className="flex-1 bg-white/20 rounded-full text-white"
-                                style={{ '--background': 'rgba(255,255,255,0.2)', '--text-color': '#fff', '--placeholder-color': 'rgba(255,255,255,0.7)' }}
+                                style={{ '--background': 'rgba(255,255,255,0.2)', '--text-color': '#fff', '--placeholder-color': 'rgba(255,255,255,0.7)' } as any}
                                 value={searchText}
                                 onChange={setSearchText}
                                 onClear={() => setSearchText('')}
