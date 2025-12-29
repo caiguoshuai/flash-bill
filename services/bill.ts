@@ -21,3 +21,13 @@ export const getTransactionDetail = async (
 ): Promise<ApiResponse<Transaction>> => {
   return request.get<any, ApiResponse<Transaction>>(`/transactions/${uuid}`);
 };
+
+/**
+ * Fetch transaction list
+ * @param params Query params
+ */
+export const getTransactionList = async (
+  params?: { month?: string; page?: number; size?: number }
+): Promise<ApiResponse<Transaction[]>> => {
+  return request.get<any, ApiResponse<Transaction[]>>('/transactions', { params });
+};

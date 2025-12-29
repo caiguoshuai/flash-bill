@@ -1,48 +1,43 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  NavBar, 
-  Tabs, 
-  DatePicker, 
-  Input, 
-  TextArea, 
-  NumberKeyboard, 
-  Button, 
+import {
+  NavBar,
+  DatePicker,
+  TextArea,
+  NumberKeyboard,
   Toast,
-  Form,
-  Selector
 } from 'antd-mobile';
+import {
+  CalendarOutline,
+  EditSOutline,
+  PayCircleOutline,
+} from 'antd-mobile-icons';
 import dayjs from 'dayjs';
 import { v4 as uuidv4 } from 'uuid';
+import { useNavigate } from 'react-router-dom';
 import { createTransaction } from '../../../services/bill';
 import { TransactionType } from '../../../types/transaction';
-
-// Icons using unicode/emoji for simplicity in this demo, real app would use SVG components
-const ICONS = {
-  back: '←',
-  calendar: '📅',
-};
+import classNames from 'classnames';
 
 const RecordPage: React.FC = () => {
+  const navigate = useNavigate();
+
   // --- State ---
-  const [activeType, setActiveType] = useState<string>(String(TransactionType.EXPENSE));
+  const [activeType, setActiveType] = useState<TransactionType>(TransactionType.EXPENSE);
   const [amount, setAmount] = useState<string>('');
   const [date, setDate] = useState<Date>(new Date());
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [note, setNote] = useState<string>('');
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-  
-  // Mock Category & Account Selection (In real app, fetch these from store/API)
+  const [keyboardVisible, setKeyboardVisible] = useState(true);
+
+  // Mock Category & Account Selection
   const [categoryId, setCategoryId] = useState<string>('food');
   const [accountId, setAccountId] = useState<string>('cash');
 
   // --- Handlers ---
-
   const handleInputAmount = (value: string) => {
-    // Validate input (prevent multiple decimals, limit length)
     if (value === '.' && amount.includes('.')) return;
-    if (amount.includes('.') && amount.split('.')[1].length >= 2) return; // Max 2 decimal places
-    if (amount.length > 9) return; 
-
+    if (amount.includes('.') && amount.split('.')[1].length >= 2) return;
+    if (amount.length > 9) return;
     setAmount(prev => prev + value);
   };
 
@@ -52,187 +47,250 @@ const RecordPage: React.FC = () => {
 
   const handleSave = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      Toast.show('请输入有效金额');
-      return;
-    }
-    if (!categoryId) {
-      Toast.show('请选择分类');
+      Toast.show({ content: '请输入金额', position: 'top' });
       return;
     }
 
     const numericAmount = parseFloat(amount);
-    // Convert to cents (Int64 equivalent logic)
-    // Using Math.round to avoid floating point errors (e.g. 4.12 * 100 = 412.00000000000006)
     const amountInCents = Math.round(numericAmount * 100);
 
     const payload = {
-      uuid: uuidv4(), // Generate UUID frontend side
-      ledgerId: 'default-ledger-id', // Assuming default ledger context
+      uuid: uuidv4(),
+      ledgerId: 'default-ledger-id',
       accountId: accountId,
       categoryId: categoryId,
-      type: parseInt(activeType) as TransactionType,
+      type: activeType,
       amount: amountInCents,
-      date: dayjs(date).format('YYYY-MM-DDTHH:mm:ssZ'), // ISO format
+      date: dayjs(date).format('YYYY-MM-DDTHH:mm:ssZ'),
       note: note.trim(),
     };
 
     try {
-      Toast.show({
-        icon: 'loading',
-        content: '保存中...',
-        duration: 0,
-      });
-
+      // Mock delay for feeling
       await createTransaction(payload);
-      
-      Toast.clear();
-      Toast.show({
-        icon: 'success',
-        content: '记账成功',
-      });
+      Toast.show({ icon: 'success', content: '已保存' });
 
-      // Reset form
+      // Reset
       setAmount('');
       setNote('');
-      setKeyboardVisible(false);
-      
+      navigate('/home');
     } catch (error) {
       console.error(error);
-      // Error handling is largely done in request interceptor, 
-      // but specific UI recovery can happen here.
-      Toast.clear();
+      Toast.show({ icon: 'fail', content: '保存失败' });
     }
   };
 
-  // --- Render Helpers ---
+  const categories = [
+    { label: '餐饮', value: 'food', icon: '🍔' },
+    { label: '交通', value: 'transport', icon: '🚗' },
+    { label: '购物', value: 'shopping', icon: '🛍️' },
+    { label: '娱乐', value: 'entertainment', icon: '🎮' },
+    { label: '居住', value: 'housing', icon: '🏠' },
+    { label: '医疗', value: 'medical', icon: '💊' },
+    { label: '工资', value: 'salary', icon: '💰' },
+    { label: '理财', value: 'investment', icon: '�' },
+  ];
 
   const displayAmount = useMemo(() => {
     if (!amount) return '0.00';
     return amount;
   }, [amount]);
 
+  const isExpense = activeType === TransactionType.EXPENSE;
+  // Professional Fintech Colors: Expense = Red (#ff4d4f), Income = Green (#52c41a)
+  const themeColor = isExpense ? 'text-red-500' : 'text-green-500';
+  const themeBg = isExpense ? 'bg-red-50' : 'bg-green-50';
+  const themeBorder = isExpense ? 'border-red-100' : 'border-green-100';
+
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
-      {/* 1. Navigation Bar */}
-      <NavBar onBack={() => console.log('back')} className="bg-white border-b border-gray-100">
-        记一笔
-      </NavBar>
-
-      {/* 2. Type Tabs (Income/Expense) */}
-      <div className="bg-white pt-2">
-        <Tabs 
-          activeKey={activeType} 
-          onChange={setActiveType}
-          style={{ '--title-font-size': '16px' }}
+    <div className="flex flex-col h-full bg-gray-50 font-sans selection:bg-blue-100">
+      {/* 1. Minimalist Header */}
+      <div className="px-4 pt-3 flex items-center justify-between">
+        <div
+          onClick={() => navigate('/home')}
+          className="p-2 -ml-2 text-gray-600 active:opacity-60 cursor-pointer"
         >
-          <Tabs.Tab title="支出" key={String(TransactionType.EXPENSE)} />
-          <Tabs.Tab title="收入" key={String(TransactionType.INCOME)} />
-        </Tabs>
-      </div>
-
-      {/* 3. Main Input Area */}
-      <div className="flex-1 overflow-y-auto pb-24">
-        
-        {/* Category Selector (Mocked) */}
-        <div className="p-4 bg-white mb-2">
-           <div className="text-sm text-gray-500 mb-2">选择分类</div>
-           <Selector
-              columns={3}
-              options={[
-                { label: '餐饮', value: 'food' },
-                { label: '交通', value: 'transport' },
-                { label: '购物', value: 'shopping' },
-              ]}
-              value={[categoryId]}
-              onChange={v => v[0] && setCategoryId(v[0])}
-            />
+          <span className="text-sm font-medium">取消</span>
         </div>
 
-        {/* Amount & Date & Note Form */}
-        <div className="bg-white px-4 py-2">
-           {/* Amount Display - Triggers Keyboard */}
-           <div 
-             className="flex items-baseline border-b border-gray-100 py-4 mb-4"
-             onClick={() => {
-                setKeyboardVisible(true);
-                // In a real device, might need to blur other inputs
-             }}
-           >
-             <span className="text-2xl font-bold mr-2">¥</span>
-             <span className={`text-4xl font-mono ${!amount ? 'text-gray-300' : 'text-gray-900'}`}>
-               {displayAmount}
-             </span>
-             <span className="ml-auto text-primary animate-pulse w-0.5 h-6 bg-primary opacity-50 block"></span>
-           </div>
-
-           <Form layout='horizontal'>
-              {/* Date Picker Trigger */}
-              <Form.Item label="日期" onClick={() => setDatePickerVisible(true)}>
-                 <div className="flex items-center text-gray-700">
-                    <span className="mr-2">{ICONS.calendar}</span>
-                    {dayjs(date).format('YYYY年MM月DD日')}
-                 </div>
-              </Form.Item>
-
-              {/* Account Selector (Mocked) */}
-              <Form.Item label="账户">
-                 <div onClick={() => {}} className="text-gray-700">
-                   {accountId === 'cash' ? '现金账户' : '银行卡'}
-                 </div>
-              </Form.Item>
-
-              {/* Note Input */}
-              <Form.Item label="备注">
-                <TextArea 
-                  placeholder="写点备注..." 
-                  value={note}
-                  onChange={setNote}
-                  autoSize={{ minRows: 1, maxRows: 3 }}
-                  maxLength={100}
-                />
-              </Form.Item>
-           </Form>
+        {/* Segmented Control */}
+        <div className="flex bg-gray-200 p-1 rounded-lg">
+          <button
+            className={classNames(
+              "px-6 py-1.5 rounded-md text-sm font-bold transition-all duration-300",
+              isExpense ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            )}
+            onClick={() => setActiveType(TransactionType.EXPENSE)}
+          >
+            支出
+          </button>
+          <button
+            className={classNames(
+              "px-6 py-1.5 rounded-md text-sm font-bold transition-all duration-300",
+              !isExpense ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            )}
+            onClick={() => setActiveType(TransactionType.INCOME)}
+          >
+            收入
+          </button>
         </div>
+
+        <div className="w-8"></div> {/* Spacer for center alignment */}
       </div>
 
-      {/* 4. Action Button (Sticky Bottom above keyboard) */}
-      <div className="fixed bottom-0 w-full bg-white z-50 safe-area-bottom">
-         {/* If keyboard is NOT visible, show a big save button, 
-             otherwise the keyboard usually has a confirm button */}
-         {!keyboardVisible && (
-            <div className="p-4 border-t border-gray-100">
-              <Button 
-                block 
-                color="primary" 
-                size="large" 
-                onClick={handleSave}
-                shape="rounded"
-              >
-                保存
-              </Button>
+      <div className="flex-1 overflow-y-auto pb-64 px-4 pt-4 hide-scrollbar">
+
+        {/* 2. Amount Display (Clean & Huge) */}
+        <div
+          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-4 text-center cursor-pointer transition-shadow hover:shadow-md"
+          onClick={() => setKeyboardVisible(true)}
+        >
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
+            {isExpense ? 'Expense Amount' : 'Income Amount'}
+          </div>
+          <div className="flex items-baseline justify-center">
+            <span className={classNames("text-3xl font-bold mr-2 align-top opacity-80", themeColor)}>¥</span>
+            <span className={classNames("text-6xl font-black tracking-tighter", themeColor)}>
+              {displayAmount}
+            </span>
+            <span className={classNames("w-0.5 h-10 ml-1 animate-pulse", isExpense ? "bg-red-400" : "bg-green-400")}></span>
+          </div>
+        </div>
+
+        {/* 3. Category Grid (Chips Style) */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-gray-800">分类</h3>
+            <span className="text-xs text-gray-400">全部 &gt;</span>
+          </div>
+          <div className="grid grid-cols-4 gap-y-4 gap-x-2">
+            {categories.map(cat => {
+              const isSelected = categoryId === cat.value;
+              return (
+                <div
+                  key={cat.value}
+                  onClick={() => setCategoryId(cat.value)}
+                  className={classNames(
+                    "flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all duration-200 cursor-pointer border",
+                    isSelected
+                      ? classNames(themeBg, themeBorder, isExpense ? "text-red-600" : "text-green-600", "font-bold scale-105")
+                      : "bg-transparent border-transparent text-gray-400 hover:bg-gray-50"
+                  )}
+                >
+                  <div className="text-2xl mb-1 filter drop-shadow-sm">{cat.icon}</div>
+                  <div className="text-[11px]">{cat.label}</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* 4. Details List (Clean Vertical List) */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+
+          {/* Date */}
+          <div
+            className="flex items-center p-4 border-b border-gray-50 active:bg-gray-50 transition-colors cursor-pointer"
+            onClick={() => setDatePickerVisible(true)}
+          >
+            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mr-3">
+              <CalendarOutline />
             </div>
-         )}
+            <div className="flex-1 font-medium text-gray-700">日期</div>
+            <div className="font-bold text-gray-900 bg-gray-50 px-3 py-1 rounded-md text-sm">
+              {dayjs(date).format('YY年M月D日')}
+            </div>
+          </div>
 
-         {/* 5. Custom Number Keyboard */}
-         <NumberKeyboard
-            visible={keyboardVisible}
-            onClose={() => setKeyboardVisible(false)}
-            onInput={handleInputAmount}
-            onDelete={handleDeleteAmount}
-            confirmText="保存"
-            onConfirm={handleSave}
-            customKey="."
-            safeArea
-          />
+          {/* Account */}
+          <div className="flex items-center p-4 border-b border-gray-50">
+            <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center mr-3">
+              <PayCircleOutline />
+            </div>
+            <div className="flex-1 font-medium text-gray-700">账户</div>
+            <div className="flex gap-2">
+              {['cash', 'bank'].map(acc => (
+                <button
+                  key={acc}
+                  onClick={() => setAccountId(acc)}
+                  className={classNames(
+                    "px-3 py-1 rounded-md text-xs font-bold transition-all border",
+                    accountId === acc
+                      ? "bg-gray-800 text-white border-gray-800"
+                      : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+                  )}
+                >
+                  {acc === 'cash' ? '现金' : '银行'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Note */}
+          <div className="flex items-start p-4">
+            <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center mr-3 pt-0.5">
+              <EditSOutline />
+            </div>
+            <div className="flex-1">
+              <TextArea
+                placeholder="添加备注..."
+                value={note}
+                onChange={setNote}
+                autoSize={{ minRows: 1, maxRows: 3 }}
+                maxLength={100}
+                className="text-base font-medium text-gray-900 w-full p-0 leading-relaxed"
+                style={{ '--font-size': '15px' }}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* 6. Hidden Date Picker */}
+      {/* 5. Styled Keyboard */}
+      {/* We overlay a custom style class to change the confirm button color dynamically */}
+      <style>{`
+        .custom-keyboard .adm-number-keyboard-sidebar-confirm {
+          background-color: ${isExpense ? '#ff4d4f' : '#52c41a'} !important;
+          border-radius: 8px !important;
+          margin: 4px !important;
+          height: calc(100% - 8px) !important; 
+          font-weight: bold !important;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+        }
+        .adm-number-keyboard-wrapper {
+          background-color: #f9fafb !important;
+          border-top: 1px solid #f3f4f6 !important;
+        }
+        .adm-number-keyboard-item {
+          border-radius: 8px !important;
+          margin: 4px !important;
+          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+          background-color: white !important;
+        }
+        .adm-number-keyboard-item:active {
+          background-color: #f3f4f6 !important;
+        }
+      `}</style>
+
+      <NumberKeyboard
+        visible={keyboardVisible}
+        onClose={() => { }}
+        onInput={handleInputAmount}
+        onDelete={handleDeleteAmount}
+        onConfirm={handleSave}
+        customKey="."
+        confirmText="完成"
+        showCloseButton={false}
+        className="custom-keyboard"
+        safeArea
+      />
+
       <DatePicker
         visible={datePickerVisible}
         onClose={() => setDatePickerVisible(false)}
         value={date}
         onConfirm={v => setDate(v)}
-        max={new Date()} // Can't select future dates usually
+        max={new Date()}
       />
     </div>
   );
