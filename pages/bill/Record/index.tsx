@@ -14,12 +14,14 @@ import {
 import dayjs from 'dayjs';
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from 'react-router-dom';
+import { useLedgerStore } from '../../../store/useLedgerStore';
 import { createTransaction } from '../../../services/bill';
 import { TransactionType } from '../../../types/transaction';
 import classNames from 'classnames';
 
 const RecordPage: React.FC = () => {
   const navigate = useNavigate();
+  const { currentLedger } = useLedgerStore();
 
   // --- State ---
   const [activeType, setActiveType] = useState<TransactionType>(TransactionType.EXPENSE);
@@ -51,12 +53,17 @@ const RecordPage: React.FC = () => {
       return;
     }
 
+    if (!currentLedger) {
+      Toast.show({ content: '未选择账本', icon: 'fail' });
+      return;
+    }
+
     const numericAmount = parseFloat(amount);
     const amountInCents = Math.round(numericAmount * 100);
 
     const payload = {
       uuid: uuidv4(),
-      ledgerId: 'default-ledger-id',
+      ledgerId: currentLedger.id, // Use actual ledger ID
       accountId: accountId,
       categoryId: categoryId,
       type: activeType,

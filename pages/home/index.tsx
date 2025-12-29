@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { NavBar } from 'antd-mobile';
-import { SearchOutline, CalendarOutline } from 'antd-mobile-icons';
+import { SearchOutline, CalendarOutline, UnorderedListOutline } from 'antd-mobile-icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import { Transaction, TransactionType } from '../../types/transaction';
 import { CATEGORY_ICONS } from '../../utils/constants';
+import { useLedgerStore } from '../../store/useLedgerStore';
+import LedgerSidebar from '../../components/LedgerSidebar';
+import { getTransactionList } from '../../services/bill';
 import classNames from 'classnames';
 
 dayjs.locale('zh-cn');
@@ -13,12 +16,18 @@ dayjs.locale('zh-cn');
 const HomePage: React.FC = () => {
     const navigate = useNavigate();
     const [list, setList] = useState<Transaction[]>([]);
+    const [sidebarVisible, setSidebarVisible] = useState(false);
+
+    const { currentLedger, fetchLedgers } = useLedgerStore();
 
     // Mock Data (will be replaced if API works)
-    const loadMockData = () => {
+    const loadMockData = (ledgerId: string) => {
+        // In real app, pass ledgerId to API
+        console.log("Fetching for ledger:", ledgerId);
+
         const mocks: Transaction[] = Array.from({ length: 15 }).map((_, i) => ({
-            uuid: `mock-${i}`,
-            ledgerId: '1',
+            uuid: `mock-${i}-${ledgerId}`,
+            ledgerId: ledgerId,
             accountId: 'cash',
             categoryId: Object.keys(CATEGORY_ICONS)[i % 6],
             type: i % 3 === 0 ? TransactionType.INCOME : TransactionType.EXPENSE,
@@ -29,9 +38,18 @@ const HomePage: React.FC = () => {
         setList(mocks);
     };
 
+    // Initial Fetch
     useEffect(() => {
-        loadMockData(); // Initial load
+        fetchLedgers();
     }, []);
+
+    // React to ledger change
+    useEffect(() => {
+        if (currentLedger) {
+            loadMockData(currentLedger.id);
+            // TODO: getTransactionList({ ledgerId: currentLedger.id }).then(...)
+        }
+    }, [currentLedger]);
 
     // Group by Date
     const groupedList = useMemo(() => {
@@ -58,12 +76,18 @@ const HomePage: React.FC = () => {
     const formatCurrency = (amount: number) => (amount / 100).toFixed(2);
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="flex flex-col h-full bg-gray-50 pb-20">
             {/* 1. Header Area with Summary Card */}
             <div className="bg-primary pb-16 pt-safe">
                 <div className="px-4 py-3 flex justify-between items-center text-white">
-                    <div className="flex items-center gap-1 font-bold text-lg">
-                        <span>Flash Bill</span>
+                    <div
+                        className="flex items-center gap-2 font-bold text-lg cursor-pointer active:opacity-80"
+                        onClick={() => setSidebarVisible(true)}
+                    >
+                        <UnorderedListOutline fontSize={24} />
+                        <span className="truncate max-w-[200px]">
+                            {currentLedger ? currentLedger.name : 'Loading...'}
+                        </span>
                     </div>
                     <div className="flex gap-4 text-xl">
                         <SearchOutline />
@@ -91,7 +115,7 @@ const HomePage: React.FC = () => {
             </div>
 
             {/* 2. Transaction List */}
-            <div className="-mt-10 px-3 relative z-10">
+            <div className="-mt-10 px-3 relative z-10 flex-1 overflow-y-auto hide-scrollbar">
                 {groupedList.map(([date, items]) => (
                     <div key={date} className="bg-white rounded-xl shadow-sm mb-3 overflow-hidden">
                         {/* Date Header */}
@@ -136,8 +160,15 @@ const HomePage: React.FC = () => {
                     </div>
                 ))}
 
-                <div className="h-4"></div>
+                <div className="h-10 text-center text-gray-300 text-xs py-4">
+                    - 没有更多了 -
+                </div>
             </div>
+
+            <LedgerSidebar
+                visible={sidebarVisible}
+                onClose={() => setSidebarVisible(false)}
+            />
         </div>
     );
 };
